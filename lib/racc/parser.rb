@@ -12,13 +12,6 @@
 
 require 'racc/info'
 
-module Racc
-  class ParseError < StandardError; end
-end
-unless defined?(::ParseError)
-  ParseError = Racc::ParseError # :nodoc:
-end
-
 # Racc is a LALR(1) parser generator.
 # It is written in Ruby itself, and generates Ruby programs.
 #
@@ -176,6 +169,7 @@ end
 # Note: parser.rb is ruby license, but your parser is not.
 # Your own parser is completely yours.
 module Racc
+  class ParseError < StandardError; end
 
   unless defined?(Racc_No_Extensions)
     Racc_No_Extensions = false # :nodoc:
@@ -626,5 +620,8 @@ module Racc
     end
 
   end
+end
 
+unless defined?(ParseError)
+  ParseError = Racc::ParseError # :nodoc:
 end
