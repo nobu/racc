@@ -29,13 +29,28 @@ file 'lib/racc/parser-text.rb' => ['lib/racc/parser.rb', 'lib/racc/info.rb', __F
 
   text = File.read(source)
   text.sub!(/\A# *frozen[-_]string[-_]literal:.*\n/, '')
-  text.gsub!(/^require '(.*)'$/) do
-    lib = $1
+  libs = []
+  text.gsub!(/(\A|\n)require '(.*)'\n/) do
+    pre, lib = $1, $2
     code = File.read("lib/#{lib}.rb")
     code.sub!(/\A(?:#.*\n)+/, '')
-    %[unless $".find {|p| p.end_with?('/#{lib}.rb')}\n$".push "\#{__dir__}/#{lib}.rb"\n#{code}\nend\n]
+    if code.sub!(/\A\s*^module Racc\n((?m:.*)\n)end\Z/, '\1')
+      code.sub!(/\n\K\n+\z/, '')
+      libs << code
+      ''
+    else
+      pre + <<-CODE
+unless $".find {|p| p.end_with?('/#{lib}.rb')}
+$".push "\#{__dir__}/#{lib}.rb"
+#{code}
+end
+      CODE
+    end
   rescue
     $&
+  end
+  unless libs.empty?
+    text.sub!(/^module Racc\n\K/, libs.join("\n"))
   end
   File.open(t.name, 'wb') { |io|
     io.write(<<-eorb)
