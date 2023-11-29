@@ -25,19 +25,21 @@ def jruby?
 end
 
 file 'lib/racc/parser-text.rb' => ['lib/racc/parser.rb', 'lib/racc/info.rb', __FILE__] do |t|
-  source = 'lib/racc/parser.rb'
+  source = 'racc/parser.rb'
 
-  text = File.read(source)
+  text = File.read("lib/#{source}")
   text.sub!(/\A# *frozen[-_]string[-_]literal:.*\n/, '')
-  text.sub!(/\A(?:#.*\n)*+(?:(?:[^#\n].*)?\n)*+\K(?:#.*\n)++/, '')
+  text.sub!(/\A(?:#.*\n)*+/, '')
+  (preface = $&).gsub!(/^#(?:--|\+\+)\n/, '')
+  text.gsub!(/(?:^\s*(?:#+(?: .*)?)?\n)+/, "\n")
   libs = []
-  text.gsub!(/(\A|\n)require '(.*)'\n/) do
+  text.gsub!(/(\A|\n)require '(.*)'\n+/) do
     pre, lib = $1, $2
     code = File.read("lib/#{lib}.rb")
     code.sub!(/\A(?:#.*\n)+/, '')
     if code.sub!(/\A\s*^module Racc\n((?m:.*)\n)end\Z/, '\1')
       code.sub!(/\n\K\n+\z/, '')
-      libs << code
+      libs << "  ###### #{lib}.rb begin\n""#{code}""  ###### #{lib}.rb end\n\n"
       ''
     else
       pre + <<-CODE
@@ -51,15 +53,20 @@ end
     $&
   end
   unless libs.empty?
-    text.sub!(/^module Racc\n\K/, libs.join("\n"))
+    text.sub!(/^module Racc\n\K/, libs.join(""))
   end
-  text.sub!(/^(?=module Racc$)/, "#--\n")
   File.open(t.name, 'wb') { |io|
     io.write(<<-eorb)
 module Racc
   PARSER_TEXT = <<'__end_of_file__'
-#{text}
-\#++
+###### #{source} begin
+#--
+#{preface}
+unless $".find {|p| p.end_with?('/#{source}')}
+  $".push "\#{__dir__}/#{source}"
+#{text.gsub(/^(?!$)/, '  ')}end
+#++
+###### #{source} end
 __end_of_file__
 end
     eorb
