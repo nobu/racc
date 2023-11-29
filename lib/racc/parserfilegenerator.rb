@@ -104,12 +104,12 @@ module Racc
       notice
       line
       if @params.embed_runtime?
-        embed_library runtime_source()
+        pre = -> {embed_library runtime_source()}
       else
         require 'racc/parser.rb'
       end
       header
-      parser_class(@params.classname, @params.superclass) {
+      parser_class(@params.classname, @params.superclass, pre) {
         inner
         state_transition_table
       }
@@ -133,7 +133,7 @@ module Racc
     end
 
     def runtime_source
-      SourceText.new(::Racc::PARSER_TEXT, 'racc/parser.rb', 1)
+      SourceText.new(::Racc::PARSER_TEXT.gsub(/^(?!$)/, '  ' * @cref.size), 'racc/parser.rb', 1)
     end
 
     def embed_library(src)
@@ -149,13 +149,14 @@ module Racc
       line "require '#{feature}'"
     end
 
-    def parser_class(classname, superclass)
+    def parser_class(classname, superclass, preface = nil)
       mods = classname.split('::')
       classid = mods.pop
       mods.each do |mod|
         indent; line "module #{mod}"
         cref_push mod
       end
+      preface.call if preface
       indent; line "class #{classid} < #{superclass}"
       cref_push classid
       yield
