@@ -29,6 +29,7 @@ file 'lib/racc/parser-text.rb' => ['lib/racc/parser.rb', 'lib/racc/info.rb', __F
 
   text = File.read(source)
   text.sub!(/\A# *frozen[-_]string[-_]literal:.*\n/, '')
+  text.sub!(/\A(?:#.*\n)*+(?:(?:[^#\n].*)?\n)*+\K(?:#.*\n)++/, '')
   libs = []
   text.gsub!(/(\A|\n)require '(.*)'\n/) do
     pre, lib = $1, $2
@@ -52,11 +53,13 @@ end
   unless libs.empty?
     text.sub!(/^module Racc\n\K/, libs.join("\n"))
   end
+  text.sub!(/^(?=module Racc$)/, "#--\n")
   File.open(t.name, 'wb') { |io|
     io.write(<<-eorb)
 module Racc
   PARSER_TEXT = <<'__end_of_file__'
 #{text}
+\#++
 __end_of_file__
 end
     eorb
