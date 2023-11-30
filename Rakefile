@@ -66,7 +66,8 @@ module Racc
 #{preface}
 unless $".find {|p| p.end_with?('/#{source}')}
   $".push "\#{__dir__}/#{source}"
-#{text.gsub(/^(?!$)/, '  ')}end
+#{text[/^module Racc\n.*?^end$/m].gsub(/^(?!$)/, '  ')}
+end
 #++
 ###### #{source} end
 __end_of_file__
