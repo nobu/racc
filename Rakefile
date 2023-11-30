@@ -35,6 +35,7 @@ file 'lib/racc/parser-text.rb' => ['lib/racc/parser.rb', 'lib/racc/info.rb', __F
   libs = []
   text.gsub!(/(\A|\n)require '(.*)'\n+/) do
     pre, lib = $1, $2
+    next '' if lib == 'racc/info'
     code = File.read("lib/#{lib}.rb")
     code.sub!(/\A(?:#.*\n)+/, '')
     if code.sub!(/\A\s*^module Racc\n((?m:.*)\n)end\Z/, '\1')
@@ -52,6 +53,7 @@ end
   rescue
     $&
   end
+  text.gsub!(/::Racc::V(?i:ersion)/) {"-"+Racc::Version.dump}
   unless libs.empty?
     text.sub!(/^module Racc\n\K/, libs.join(""))
   end
