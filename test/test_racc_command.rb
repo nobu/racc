@@ -46,6 +46,8 @@ module Racc
       assert_compile 'echk.y', '-E'
       assert_debugfile 'echk.y', []
       assert_exec 'echk.y', quiet: true
+      args = ["-C", @TEMP_DIR, "-I#{LIB_DIR}", "-e", "load './tab/echk'", "-e", "require 'racc/parser'"]
+      ruby(*args, quiet: true)
     end
 
     def test_err_y
