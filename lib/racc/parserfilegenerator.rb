@@ -18,6 +18,7 @@ require 'rbconfig'
 module Racc
 
   class ParserFileGenerator
+    DEFAULT_PARSER_CLASS = -'Racc::Parser' # Default superclass of the generated parser
 
     class Params
       def self.bool_attr(name)
@@ -53,7 +54,7 @@ module Racc
         # Parameters derived from parser
         self.filename = nil
         self.classname = nil
-        self.superclass = 'Racc::Parser'
+        self.superclass = DEFAULT_PARSER_CLASS
         self.omit_action_call = true
         self.result_var = true
         self.header = []
@@ -103,13 +104,15 @@ module Racc
       shebang @params.interpreter if @params.make_executable?
       notice
       line
+      superclass = @params.superclass
       if @params.embed_runtime?
         pre = -> {embed_library runtime_source()}
+        superclass = 'racc::Parser' if superclass.equal?(DEFAULT_PARSER_CLASS)
       else
         require 'racc/parser.rb'
       end
       header
-      parser_class(@params.classname, @params.superclass, pre) {
+      parser_class(@params.classname, superclass, pre) {
         inner
         state_transition_table
       }
@@ -137,7 +140,12 @@ module Racc
     end
 
     def embed_library(src)
-      put src, @params.convert_line?
+      sep = make_separator(src)
+      line "racc = Object.const_defined?(:Racc) && Racc.const_defined?(:Parser) ? Racc : Module.new {"
+      line "  module_eval(<<'#{sep}', '#{src.filename}', #{src.lineno})"
+      line src.text
+      line sep
+      line "}"
     end
 
     def require(feature)
