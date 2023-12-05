@@ -46,6 +46,9 @@ module Racc
       assert_compile 'echk.y', '-E'
       assert_debugfile 'echk.y', []
       assert_exec 'echk.y', quiet: true
+      if Object.const_defined?(:RUBY_ENGINE) and RUBY_ENGINE == 'jruby'
+        omit "com.headius.racc.Cparse#load always tries to define new constants"
+      end
       args = ["-C", @TEMP_DIR, "-I#{LIB_DIR}", "-e", "load './tab/echk'", "-e", "require 'racc/parser'"]
       ruby(*args, quiet: true)
     end
