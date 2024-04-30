@@ -8,8 +8,9 @@
 # You can distribute/modify this program under the same terms of ruby.
 # see the file "COPYING".
 
-require 'racc/static'
 require 'optparse'
+
+module Racc; end
 
 def main
   output = nil
@@ -20,14 +21,14 @@ def main
   rubypath = nil
   embed_runtime = false
   frozen_strings = false
-  debug_flags = Racc::DebugFlags.new
+  debug_flags = nil
   line_convert = true
   line_convert_all = false
   omit_action_call = true
   superclass = nil
   check_only = false
   verbose = false
-  profiler = RaccProfiler.new(false)
+  profiler = false
 
   parser = OptionParser.new
   parser.banner = "Usage: #{File.basename($0)} [options] [input]"
@@ -82,19 +83,20 @@ def main
     verbose = true
   }
   parser.on('-P', 'Enables generator profile') {
-    profiler = RaccProfiler.new(true)
+    profiler = true
   }
   parser.on('-D flags', "Flags for Racc debugging (do not use).") {|flags|
-    debug_flags = Racc::DebugFlags.parse_option_string(flags)
+    debug_flags = flags
   }
-  #parser.on('--no-extensions', 'Run Racc without any Ruby extension.') {
-  #  Racc.const_set :Racc_No_Extensions, true
-  #}
+  parser.on('--no-extensions', 'Run Racc without any Ruby extension.') {
+    Racc.const_set :Racc_No_Extensions, true
+  }
   parser.on('--version', 'Prints version and quit.') {
     puts "racc version #{Racc::Version}"
     exit
   }
   parser.on('--runtime-version', 'Prints runtime version and quit.') {
+    require 'racc/static'
     printf "racc runtime version %s; %s core version %s\n",
            Racc::Parser::Racc_Runtime_Version,
            Racc::Parser.racc_runtime_type,
@@ -106,6 +108,7 @@ def main
     exit
   }
   parser.on('--copyright', 'Prints copyright and quit.') {
+    require 'racc/static'
     puts Racc::Copyright
     exit
   }
@@ -127,6 +130,10 @@ def main
   if input == "stdin" && !output then
     abort 'You must specify a path to read or use -o <path> for output.'
   end
+
+  require 'racc/static'
+  profiler = RaccProfiler.new(profiler)
+  debug_flags = Racc::DebugFlags.parse_option_string(debug_flags || "")
 
   begin
     $stderr.puts 'Parsing grammar file...' if verbose
